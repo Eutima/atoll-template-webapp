@@ -1,0 +1,37 @@
+<c-vars name="" label="" search-url="" selected-value="" selected-label="" placeholder="Search…" />
+
+<div class="relative" x-data="searchableSelect()" x-on:click.outside="close()">
+  {% if label %}
+  <label class="mb-1 block text-sm font-medium text-gray-700" for="{{ name }}_input">{{ label }}</label>
+  {% endif %}
+
+  <input type="hidden" name="{{ name }}" x-model="value" value="{{ selected_value }}" />
+
+  <input
+    id="{{ name }}_input"
+    type="text"
+    autocomplete="off"
+    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+    placeholder="{{ placeholder }}"
+    value="{{ selected_label }}"
+    hx-get="{{ search_url }}"
+    hx-trigger="keyup changed delay:300ms, focus"
+    hx-target="find [data-role='results']"
+    hx-indicator="find [data-role='loading']"
+    x-on:keydown.arrow-down.prevent="highlightNext()"
+    x-on:keydown.arrow-up.prevent="highlightPrevious()"
+    x-on:keydown.enter.prevent="selectHighlighted()"
+    x-on:keydown.escape="close()"
+    x-on:focus="open = true"
+  />
+
+  <div data-role="loading" class="htmx-indicator absolute right-2 top-9 text-xs text-gray-400">Loading…</div>
+
+  <div
+    data-role="results"
+    x-show="open"
+    x-on:htmx:after-swap="onResultsSwapped($event)"
+    class="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
+    role="listbox"
+  ></div>
+</div>

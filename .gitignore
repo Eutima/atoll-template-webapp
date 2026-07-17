@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.Python
+.venv/
+venv/
+
+# Django
+db.sqlite3
+huey.sqlite3
+/staticfiles/
+*.log
+
+# Env
+.env
+
+# Node / frontend build
+node_modules/
+/static/css/dist/*
+!/static/css/dist/.gitkeep
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store

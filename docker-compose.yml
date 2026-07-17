@@ -1,0 +1,26 @@
+services:
+  web:
+    build:
+      context: .
+      target: dev
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+
+  huey:
+    build:
+      context: .
+      target: dev
+    command: python manage.py run_huey
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    env_file: .env
+    volumes:
+      - .:/app
+    depends_on:
+      - web

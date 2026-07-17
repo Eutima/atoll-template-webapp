@@ -1,0 +1,13 @@
+{
+  "name": "django-template-frontend",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/src/main.css -o ./static/css/dist/main.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/src/main.css -o ./static/css/dist/main.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  }
+}

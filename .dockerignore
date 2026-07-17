@@ -1,0 +1,15 @@
+.git
+.venv
+venv
+node_modules
+__pycache__
+*.pyc
+.env
+db.sqlite3
+huey.sqlite3
+staticfiles/
+static/css/dist/*
+!static/css/dist/.gitkeep
+.pytest_cache
+*.log
+.DS_Store

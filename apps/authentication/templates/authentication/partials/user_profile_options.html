@@ -1,0 +1,25 @@
+{% for profile in page_obj %}
+  <div
+    role="option"
+    data-value="{{ profile.pk }}"
+    data-label="{{ profile.email }}"
+    class="cursor-pointer px-3 py-2 text-sm hover:bg-indigo-50"
+    x-on:click="select($el)"
+  >
+    {{ profile.email }} &mdash; {{ profile.full_name }}
+  </div>
+{% empty %}
+  <div class="px-3 py-2 text-sm text-gray-400">No results</div>
+{% endfor %}
+{% if page_obj.has_next %}
+  <div
+    role="option"
+    data-loadmore="true"
+    hx-get="?search={{ query }}&page={{ page_obj.next_page_number }}"
+    hx-target="closest [data-role='results']"
+    hx-swap="beforeend"
+    class="cursor-pointer border-t border-gray-100 px-3 py-2 text-center text-xs text-indigo-600 hover:bg-indigo-50"
+  >
+    Load more&hellip;
+  </div>
+{% endif %}
