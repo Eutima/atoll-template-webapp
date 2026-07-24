@@ -50,10 +50,16 @@ STORAGES = {
     },
 }
 
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Temporarily disabled for HTTP-only testing (no TLS-terminating reverse proxy
+# in front of gunicorn yet). Re-enable (env-configurable, default "True") once
+# TLS termination is in place, otherwise every request 301s to https with
+# nothing listening on it. SECURE_PROXY_SSL_HEADER must stay off along with
+# these too: with no trusted proxy stripping/setting X-Forwarded-Proto, a
+# client could spoof that header directly against gunicorn's exposed port.
+# SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
+# SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "True") == "True"
+# CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "True") == "True"
+# SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Defensive guard: Debug Toolbar must never load in production, even if this
 # module is accidentally combined with development.py's INSTALLED_APPS.
