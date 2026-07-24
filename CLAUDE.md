@@ -54,6 +54,7 @@ docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 
 - **Don't build or run Docker unprompted.** `docker compose build`/`up` (dev or prod) is slow and noisy — only do it when the user explicitly asks to build, run, or test something in Docker. Local venv + `manage.py` is the default way to run and verify changes.
 - **Every model gets a Django admin registration.** When adding a new `models/<name>.py`, add a matching `@admin.register(...)` `ModelAdmin` in that app's `admin.py` (see `apps/authentication/admin.py:UserProfileAdmin`) in the same change — don't leave new models unregistered.
+- **Every environment variable read by the code must be documented in `.env.example`.** Whenever you add or change an `os.environ[...]`/`os.environ.get(...)` call (or any other env var read, e.g. in `docker-compose*.yml`), add or update the matching key in `.env.example` with a safe placeholder/default value in the same change. Use the `env-example-sync` skill to check this.
 - **Kydo integration work always goes through the `kydo-api` skill.** Any Kydo client code, tests, or notes on Kydo API behavior belong under `.claude/skills/kydo-api/` (`SKILL.md`, `references/api-quirks.md`, `assets/kydo_client.py`, `assets/test_kydo_client_example.py`) — don't scatter Kydo-related files elsewhere in the repo. Read `references/api-quirks.md` before implementing or changing any Kydo endpoint call, and add newly discovered spec-vs-reality deviations there rather than only as inline code comments.
 
 ## Architecture

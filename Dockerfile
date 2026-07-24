@@ -62,14 +62,14 @@ USER appuser
 RUN DJANGO_SECRET_KEY=build-time-placeholder \
     ALLOWED_HOSTS=localhost \
     CSRF_TRUSTED_ORIGINS=http://localhost \
-    POSTGRES_DB=build POSTGRES_USER=build POSTGRES_PASSWORD=build POSTGRES_HOST=localhost \
+    DB_NAME=build DB_USER=build DB_PASSWORD=build DB_HOST=localhost \
     python manage.py collectstatic --noinput \
     && DJANGO_SECRET_KEY=build-time-placeholder \
     ALLOWED_HOSTS=localhost \
     CSRF_TRUSTED_ORIGINS=http://localhost \
-    POSTGRES_DB=build POSTGRES_USER=build POSTGRES_PASSWORD=build POSTGRES_HOST=localhost \
+    DB_NAME=build DB_USER=build DB_PASSWORD=build DB_HOST=localhost \
     python manage.py compilemessages
 
 EXPOSE 8000
 ENTRYPOINT ["docker/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", " --workers", "4"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]

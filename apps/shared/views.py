@@ -32,6 +32,11 @@ class PaginatedListViewMixin:
         return paginator.get_page(page_number)
 
 
+def metrics(request: HttpRequest) -> HttpResponse:
+    """Minimal Prometheus exposition endpoint: reports process liveness only."""
+    return HttpResponse("up 1\n", content_type="text/plain; version=0.0.4; charset=utf-8")
+
+
 class SearchEndpointView(View):
     """Generic reusable htmx search endpoint powering `<c-searchable-select>`.
 
