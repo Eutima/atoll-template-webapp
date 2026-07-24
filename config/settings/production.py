@@ -5,7 +5,10 @@ from .base import INSTALLED_APPS, MIDDLEWARE
 
 DEBUG = False
 
-ALLOWED_HOSTS = [host.strip() for host in os.environ["ALLOWED_HOSTS"].split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip()
+                 for host in os.environ["ALLOWED_HOSTS"].split(",") if host.strip()]
+CSRF_TRUSTED_ORIGINS = [host.strip()
+                        for host in os.environ["CSRF_TRUSTED_ORIGINS"].split(",") if host.strip()]
 
 DATABASES = {
     "default": {
