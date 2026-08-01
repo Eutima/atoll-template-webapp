@@ -13,6 +13,7 @@ class UserProfileAdmin(UserAdmin):
         (None, {"fields": ("email", "password")}),
         ("Personal info", {"fields": ("first_name", "last_name")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Helix identity", {"fields": ("helix_sub",)}),
         ("Important dates", {"fields": ("last_login", "created_at", "updated_at")}),
     )
     add_fieldsets = (
@@ -24,4 +25,4 @@ class UserProfileAdmin(UserAdmin):
             },
         ),
     )
-    readonly_fields = ["created_at", "updated_at", "last_login"]
+    readonly_fields = ["created_at", "updated_at", "last_login", "helix_sub"]

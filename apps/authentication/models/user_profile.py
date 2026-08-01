@@ -56,6 +56,7 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     last_name: models.CharField = models.CharField(max_length=150, blank=True)
     is_active: models.BooleanField = models.BooleanField(default=True)
     is_staff: models.BooleanField = models.BooleanField(default=False)
+    helix_sub: models.CharField = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     objects = UserProfileManager()
 

@@ -60,10 +60,9 @@ python manage.py run_huey
 ```
 
 Visit:
+- `/` — home page, log in / log out
 - `/admin/` — Django admin
-- `/auth/login/`, `/auth/signup/` — authentication
-- `/demo/searchable-select/` — searchable dropdown demo (backend search via
-  htmx, keyboard navigation via Alpine.js)
+- `/auth/login/` — log in with Helix
 
 ## Tests
 

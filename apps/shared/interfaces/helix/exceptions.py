@@ -1,0 +1,2 @@
+class HelixAuthError(Exception):
+    pass
