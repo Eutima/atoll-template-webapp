@@ -50,12 +50,25 @@ docker compose -f docker-compose.prod.yml up --build    # prod-like: web + huey 
 docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 ```
 
+## Communicating with the user
+
+The user is a business specialist, not a developer. In all responses (not just final summaries):
+
+- Keep answers short and simple — as brief as possible while still answering the question.
+- Avoid technical jargon, code snippets, file paths, and implementation detail unless explicitly asked for them.
+- Frame explanations around business value and outcomes (what changed for them, what it enables, what to expect), not how it was built.
+
 ## Working conventions
 
+- **Always enter plan mode for any prompt that isn't a question.** If the user's message is asking you to do something (implement, fix, refactor, add, remove, configure, etc.) rather than purely asking you to explain or answer something, enter plan mode before making any changes — even if the task seems small or the approach seems obvious. Only skip plan mode for genuine questions where no repo changes are being requested.
 - **Don't build or run Docker unprompted.** `docker compose build`/`up` (dev or prod) is slow and noisy — only do it when the user explicitly asks to build, run, or test something in Docker. Local venv + `manage.py` is the default way to run and verify changes.
 - **Every model gets a Django admin registration.** When adding a new `models/<name>.py`, add a matching `@admin.register(...)` `ModelAdmin` in that app's `admin.py` (see `apps/authentication/admin.py:UserProfileAdmin`) in the same change — don't leave new models unregistered.
 - **Every environment variable read by the code must be documented in `.env.example`.** Whenever you add or change an `os.environ[...]`/`os.environ.get(...)` call (or any other env var read, e.g. in `docker-compose*.yml`), add or update the matching key in `.env.example` with a safe placeholder/default value in the same change. Use the `env-example-sync` skill to check this.
 - **Kydo integration work always goes through the `kydo-api` skill.** Any Kydo client code, tests, or notes on Kydo API behavior belong under `.claude/skills/kydo-api/` (`SKILL.md`, `references/api-quirks.md`, `assets/kydo_client.py`, `assets/test_kydo_client_example.py`) — don't scatter Kydo-related files elsewhere in the repo. Read `references/api-quirks.md` before implementing or changing any Kydo endpoint call, and add newly discovered spec-vs-reality deviations there rather than only as inline code comments.
+- **Never wipe the database.** No `flush`, no deleting `db.sqlite3`, no `migrate <app> zero`, no dropping/recreating tables to "start clean" — treat existing data (local or otherwise) as something to preserve. If a migration problem needs resolving, fix it forward instead.
+- **Never change a user's password.** Don't call `set_password`/`save()` on an existing `UserProfile`'s password, don't run `changepassword`, don't reset credentials — not even to debug a login issue.
+- **Restart the app when you're done.** After finishing a change, run/restart `python manage.py runserver` so the app is left running the latest code.
+- **Apply migrations once tests pass.** After a full `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` run succeeds and there are unapplied migrations (new or from `makemigrations`), run `python manage.py migrate` before finishing the change — don't leave migrations pending on a green test run.
 
 ## Architecture
 
