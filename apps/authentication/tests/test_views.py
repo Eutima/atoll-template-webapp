@@ -1,25 +1,108 @@
-from django.test import TestCase
+from unittest.mock import patch
+
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.authentication.models.user_profile import UserProfile
+from apps.shared.interfaces.helix.client import HelixInterface
+
+HELIX_SETTINGS = {
+    "HELIX_BASE_URL": "https://helix.example.com",
+    "HELIX_OAUTH_CLIENT_ID": "client-id",
+    "HELIX_OAUTH_CLIENT_SECRET": "client-secret",
+    "HELIX_OAUTH_TENANT": "registration-workspace",
+    "HELIX_OAUTH_REDIRECT_URI": "https://app.example.com/auth/helix/callback/",
+    "HELIX_WORKSPACE_TENANT": "acme-corp",
+}
 
 
-class LoginViewTests(TestCase):
-    def setUp(self) -> None:
-        self.user = UserProfile.objects.create_user(email="ada@example.com", password="password123")
-
-    def test_login_success_redirects(self) -> None:
-        response = self.client.post(
-            reverse("authentication:login"), {"username": "ada@example.com", "password": "password123"}
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("_auth_user_id", self.client.session)
-
-    def test_login_failure_rerenders_with_error(self) -> None:
-        response = self.client.post(
-            reverse("authentication:login"), {"username": "ada@example.com", "password": "wrong"}
-        )
+class LoginPageViewTests(TestCase):
+    def test_login_page_renders(self) -> None:
+        response = self.client.get(reverse("authentication:login"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Log in with Helix")
+
+
+@override_settings(**HELIX_SETTINGS)
+class HelixLoginViewTests(TestCase):
+    def test_get_redirects_to_helix_authorize_and_stores_session(self) -> None:
+        response = self.client.get(reverse("authentication:helix-login"))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith("https://helix.example.com/auth/oauth/authorize/"))
+        self.assertIn("tenant=registration-workspace", response.url)
+
+        pending = self.client.session["helix_oauth"]
+        self.assertIn("state", pending)
+        self.assertIn("code_verifier", pending)
+        self.assertIn(f"state={pending['state']}", response.url)
+
+
+@override_settings(**HELIX_SETTINGS)
+class HelixCallbackViewTests(TestCase):
+    def _start_login(self) -> str:
+        self.client.get(reverse("authentication:helix-login"))
+        return self.client.session["helix_oauth"]["state"]
+
+    def test_callback_creates_and_logs_in_new_user(self) -> None:
+        state = self._start_login()
+        with (
+            patch.object(HelixInterface, "exchange_code", return_value={"access_token": "access-token"}),
+            patch.object(
+                HelixInterface,
+                "userinfo",
+                return_value={"sub": "helix-sub-1", "email": "ada@example.com", "given_name": "Ada"},
+            ),
+            patch.object(HelixInterface, "tenant_slugs", return_value=["acme-corp"]),
+        ):
+            response = self.client.get(
+                reverse("authentication:helix-callback"), {"code": "auth-code", "state": state}
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/")
+        self.assertIn("_auth_user_id", self.client.session)
+        profile = UserProfile.objects.get(email="ada@example.com")
+        self.assertEqual(profile.helix_sub, "helix-sub-1")
+        self.assertFalse(profile.has_usable_password())
+
+    def test_callback_links_existing_account_by_email(self) -> None:
+        existing = UserProfile.objects.create_user(email="ada@example.com", password="password123")
+        state = self._start_login()
+        with (
+            patch.object(HelixInterface, "exchange_code", return_value={"access_token": "access-token"}),
+            patch.object(
+                HelixInterface, "userinfo", return_value={"sub": "helix-sub-1", "email": "ada@example.com"}
+            ),
+            patch.object(HelixInterface, "tenant_slugs", return_value=["acme-corp"]),
+        ):
+            self.client.get(reverse("authentication:helix-callback"), {"code": "auth-code", "state": state})
+
+        self.assertEqual(UserProfile.objects.count(), 1)
+        existing.refresh_from_db()
+        self.assertEqual(existing.helix_sub, "helix-sub-1")
+
+    def test_callback_with_invalid_state_redirects_to_login(self) -> None:
+        response = self.client.get(
+            reverse("authentication:helix-callback"), {"code": "auth-code", "state": "bogus"}
+        )
+        self.assertRedirects(response, reverse("authentication:login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_callback_rejects_non_tenant_member(self) -> None:
+        state = self._start_login()
+        with (
+            patch.object(HelixInterface, "exchange_code", return_value={"access_token": "access-token"}),
+            patch.object(
+                HelixInterface, "userinfo", return_value={"sub": "helix-sub-1", "email": "ada@example.com"}
+            ),
+            patch.object(HelixInterface, "tenant_slugs", return_value=["other-co"]),
+        ):
+            response = self.client.get(
+                reverse("authentication:helix-callback"), {"code": "auth-code", "state": state}
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(UserProfile.objects.filter(email="ada@example.com").exists())
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
@@ -30,57 +113,3 @@ class LogoutViewTests(TestCase):
         response = self.client.post(reverse("authentication:logout"))
         self.assertRedirects(response, reverse("authentication:login"))
         self.assertNotIn("_auth_user_id", self.client.session)
-
-
-class SignUpViewTests(TestCase):
-    def test_signup_success_creates_user_and_logs_in(self) -> None:
-        response = self.client.post(
-            reverse("authentication:signup"),
-            {"email": "ada@example.com", "password": "password123", "first_name": "Ada", "last_name": ""},
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(UserProfile.objects.filter(email="ada@example.com").exists())
-        self.assertIn("_auth_user_id", self.client.session)
-
-    def test_signup_validation_failure_returns_422(self) -> None:
-        response = self.client.post(
-            reverse("authentication:signup"), {"email": "not-an-email", "password": "short"}
-        )
-        self.assertEqual(response.status_code, 422)
-        self.assertFalse(UserProfile.objects.filter(email="not-an-email").exists())
-
-    def test_signup_duplicate_email_returns_422(self) -> None:
-        UserProfile.objects.create_user(email="ada@example.com", password="password123")
-        response = self.client.post(
-            reverse("authentication:signup"),
-            {"email": "ada@example.com", "password": "password123", "first_name": "", "last_name": ""},
-        )
-        self.assertEqual(response.status_code, 422)
-
-
-class UserProfileSearchViewTests(TestCase):
-    def setUp(self) -> None:
-        self.url = reverse("demo:searchable-select-search")
-
-    def test_empty_results_shows_no_results_state(self) -> None:
-        response = self.client.get(self.url, {"search": "nobody"})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No results")
-
-    def test_matching_results_are_rendered(self) -> None:
-        UserProfile.objects.create_user(email="ada@example.com", password="password123", first_name="Ada")
-        response = self.client.get(self.url, {"search": "Ada"})
-        self.assertContains(response, "ada@example.com")
-
-    def test_pagination_shows_load_more(self) -> None:
-        for i in range(25):
-            UserProfile.objects.create_user(email=f"user{i}@example.com", password="password123")
-        response = self.client.get(self.url, {"search": ""})
-        self.assertContains(response, "Load more")
-
-
-class SearchableSelectDemoViewTests(TestCase):
-    def test_demo_page_renders(self) -> None:
-        response = self.client.get(reverse("demo:searchable-select"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Find a user")

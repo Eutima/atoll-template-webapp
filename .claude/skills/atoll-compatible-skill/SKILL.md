@@ -1,12 +1,12 @@
 ---
-name: atolla-compatible
-description: Adapts the current repository so it can be deployed on the Atolla deployment platform (Dockerfile, health-check endpoint, .env.example, DB/worker conventions). Use when the user asks to "make this atolla compatible", "prepare this repo for atolla deployment", "onboard this app to atolla", or similar.
+name: atoll-compatible
+description: Adapts the current repository so it can be deployed on the Atoll deployment platform (Dockerfile, health-check endpoint, .env.example, DB/worker conventions). Use when the user asks to "make this atoll compatible", "prepare this repo for atoll deployment", "onboard this app to atoll", or similar.
 ---
 
-# Make this repository Atolla-compatible
+# Make this repository Atoll-compatible
 
-Atolla is a self-hosted deployment platform. It has **no manifest file** (no
-`atolla.yaml`, no `Procfile`, no buildpacks) and **no callback API the app must
+Atoll is a self-hosted deployment platform. It has **no manifest file** (no
+`atoll.yaml`, no `Procfile`, no buildpacks) and **no callback API the app must
 implement**. Its entire compatibility contract boils down to four things:
 
 1. A root `Dockerfile` that builds and runs a production-ready image with a
@@ -14,12 +14,12 @@ implement**. Its entire compatibility contract boils down to four things:
    `--target` flag. Whatever the **last stage** of the Dockerfile is, that's
    what gets built and run.
 2. A root `.env.example` (or `example.env`) file listing every environment
-   variable the app needs, one `KEY=` per line. Atolla only reads the *key
+   variable the app needs, one `KEY=` per line. Atoll only reads the *key
    names* from this file — it uses them to know which variables an operator
    must supply a value for in its console. If a key is expected but has no
    value set, **the deployment is blocked** before the image is even built.
 3. Exactly one HTTP health-check endpoint that returns HTTP `200`. The port
-   and path are **fixed by which deployment profile an Atolla operator picks
+   and path are **fixed by which deployment profile an Atoll operator picks
    for this app** — the repo cannot declare a custom port or path itself.
    The three profiles in use today:
 
@@ -30,21 +30,21 @@ implement**. Its entire compatibility contract boils down to four things:
    | Generic           | `8000`          | `/`                |
 
 4. If the app needs a database or a background worker, it should read their
-   connection info from a fixed set of env var names (below) — Atolla
+   connection info from a fixed set of env var names (below) — Atoll
    provisions sibling `db`/`redis` containers and pre-seeds these values, it
    does not let the app name them itself.
 
 Explicitly **out of scope** — do not add these, they are not part of the
-contract and Atolla will not use them:
-- Any `atolla.yaml`/`atolla.json`/manifest file.
-- A GitHub Actions workflow or any other CI pipeline (Atolla deploys via its
+contract and Atoll will not use them:
+- Any `atoll.yaml`/`atoll.json`/manifest file.
+- A GitHub Actions workflow or any other CI pipeline (Atoll deploys via its
   own webhook-triggered pipeline, not via CI).
 - Any webhook, callback, or "report deployment status" endpoint the app must
-  expose — Atolla never calls back into the deployed app except the single
+  expose — Atoll never calls back into the deployed app except the single
   health-check GET.
 - Reading `PORT` from the environment to decide what to bind to — the port
   is fixed by the profile, not passed in at runtime as a `PORT` var (unless
-  the app already does this for other reasons; don't add it solely for Atolla).
+  the app already does this for other reasons; don't add it solely for Atoll).
 
 ## Procedure
 
@@ -60,7 +60,7 @@ Identify the language/framework and existing entrypoint: look for
 ### 2. Ask which profile applies
 
 Before writing the Dockerfile and health check, ask the user (they'll need to
-confirm this with whoever administers their Atolla instance, since it's an
+confirm this with whoever administers their Atoll instance, since it's an
 operator-side setting):
 
 - Which profile will this app be deployed under: **Django-style** (port
@@ -70,7 +70,7 @@ operator-side setting):
   (`8000` / `/`) as the safe default and note that the operator may need to
   add a custom profile on their end if a different port is required.
 - Does this app need a database? (assume PostgreSQL if yes — that's the only
-  database Atolla provisions today)
+  database Atoll provisions today)
 - Does this app run a background worker process?
 - Will this app need a custom domain?
 
@@ -98,7 +98,7 @@ Add (or verify) a route at the path chosen in step 2 that returns a plain
 HTTP `200` with no required auth. Wire it into the app's actual router in a
 way idiomatic to the framework (e.g. a Django URL pattern, an Express route,
 a Rails route, a Spring `@GetMapping`). A trivial static `200 OK` body is
-sufficient — Atolla only checks the status code.
+sufficient — Atoll only checks the status code.
 
 ### 5. `.env.example`
 
@@ -126,7 +126,7 @@ to validate your changes:
   step 4, using `pytest`.
 - Run `pytest` and confirm it passes before considering the adaptation
   complete. This is a sanity check on the changes you just made (Dockerfile,
-  health-check route), not something Atolla itself requires — Atolla's
+  health-check route), not something Atoll itself requires — Atoll's
   pipeline does not run the app's test suite.
 
 ### 7. Database and worker conventions (only if applicable)
@@ -141,13 +141,13 @@ to validate your changes:
 - **If a worker was requested in step 2**: make sure the worker/queue config
   resolves `REDIS_HOST` and `REDIS_PORT` (default `REDIS_HOST=redis`,
   `REDIS_PORT=6379`) and add them to `.env.example`. Do not hardcode a
-  worker start command in the repo expecting Atolla to discover it — the
-  worker's start command is configured on the Atolla side. Call this out in
+  worker start command in the repo expecting Atoll to discover it — the
+  worker's start command is configured on the Atoll side. Call this out in
   your final summary so the user tells their operator the exact command to
   run (e.g. `celery -A app worker`, `node worker.js`, `bin/worker`).
 - **If a custom domain was requested in step 2**: no repo change is needed;
   note in your final summary that the operator will need to set a
-  `HOST_PORT` variable on their end and configure the domain in the Atolla
+  `HOST_PORT` variable on their end and configure the domain in the Atoll
   console.
 
 ### 8. Final summary
@@ -160,9 +160,9 @@ Report back concisely:
 - The exact container port and health-check path the app now serves, and
   which profile that matches.
 - A short checklist of what's left for the user to coordinate with their
-  Atolla operator, e.g.:
+  Atoll operator, e.g.:
   - Confirm/select the matching deployment profile for this repo.
-  - Set real values for every key in `.env.example` in the Atolla console.
+  - Set real values for every key in `.env.example` in the Atoll console.
   - Map the deployment branch(es) to environment(s).
   - If a worker is used: tell the operator the worker start command.
   - If a custom domain is planned: request a `HOST_PORT` variable and

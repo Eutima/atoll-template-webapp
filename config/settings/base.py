@@ -105,6 +105,13 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False") == "True"
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL", "noreply@example.com")
 
+HELIX_BASE_URL = https: // helix.eutima.ch
+HELIX_OAUTH_CLIENT_ID = os.environ.get("HELIX_OAUTH_CLIENT_ID", "")
+HELIX_OAUTH_CLIENT_SECRET = os.environ.get("HELIX_OAUTH_CLIENT_SECRET", "")
+HELIX_OAUTH_TENANT = os.environ.get("HELIX_OAUTH_TENANT", "")
+HELIX_OAUTH_REDIRECT_URI = os.environ.get("HELIX_OAUTH_REDIRECT_URI", "")
+HELIX_WORKSPACE_TENANT = os.environ.get("HELIX_WORKSPACE_TENANT", "")
+
 LOGGING = (
     LogConfigBuilderDjango()
     .django_log_level(logging.INFO)
