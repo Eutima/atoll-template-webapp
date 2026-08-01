@@ -6,6 +6,11 @@ services:
     env_file: .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
     depends_on:
       - postgres
       - redis
@@ -20,6 +25,11 @@ services:
     env_file: .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
     depends_on:
       - postgres
       - redis
