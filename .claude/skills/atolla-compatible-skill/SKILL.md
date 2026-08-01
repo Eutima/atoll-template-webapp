@@ -111,7 +111,25 @@ key as `KEY=` (no real values — placeholders or blank). Preserve any
 existing entries already in the file; add missing ones; don't remove
 entries you can't confirm are unused.
 
-### 6. Database and worker conventions (only if applicable)
+### 6. Testing (Python projects only)
+
+If the detected stack is Python, make sure **pytest** is the test runner used
+to validate your changes:
+- If a test suite already exists under a different runner (`unittest`,
+  `nose`, etc.), don't rewrite it — pytest can discover and run
+  `unittest`-style tests natively. Just make sure `pytest` is installed
+  (added to `requirements-dev.txt`/`pyproject.toml`'s dev/test dependency
+  group, whichever the repo already uses) and that running `pytest` from the
+  repo root actually discovers and runs the existing tests.
+- If no test suite exists yet, add a minimal smoke test (e.g.
+  `tests/test_health.py`) that exercises the health-check route added in
+  step 4, using `pytest`.
+- Run `pytest` and confirm it passes before considering the adaptation
+  complete. This is a sanity check on the changes you just made (Dockerfile,
+  health-check route), not something Atolla itself requires — Atolla's
+  pipeline does not run the app's test suite.
+
+### 7. Database and worker conventions (only if applicable)
 
 - **If a database was requested in step 2**: make sure the app's DB config
   resolves connection info from `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
@@ -132,11 +150,13 @@ entries you can't confirm are unused.
   `HOST_PORT` variable on their end and configure the domain in the Atolla
   console.
 
-### 7. Final summary
+### 8. Final summary
 
 Report back concisely:
 - What files you created/changed (Dockerfile, health-check route,
-  `.env.example`, any config changes for DB/worker env var names).
+  `.env.example`, any config changes for DB/worker env var names, any test
+  files added).
+- For Python projects: confirmation that `pytest` runs and passes.
 - The exact container port and health-check path the app now serves, and
   which profile that matches.
 - A short checklist of what's left for the user to coordinate with their
