@@ -1,8 +1,16 @@
 from types import SimpleNamespace
 
-from django.test import SimpleTestCase
+from django.test import Client, SimpleTestCase
 
 from apps.shared.views import HtmxTemplateMixin, PaginatedListViewMixin
+
+
+class MetricsViewTests(SimpleTestCase):
+    def test_returns_up_1(self) -> None:
+        response = Client().get("/metrics")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"up 1\n")
+        self.assertEqual(response["Content-Type"], "text/plain; version=0.0.4; charset=utf-8")
 
 
 class HtmxTemplateMixinTests(SimpleTestCase):

@@ -14,7 +14,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-dev-secret-key")
 DEBUG = False
 
 ALLOWED_HOSTS: list[str] = []
-
+CSRF_TRUSTED_ORIGINS: list[str] = []
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -89,6 +89,7 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -101,7 +102,8 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "1025"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False") == "True"
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@example.com")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "noreply@example.com")
 
 LOGGING = (
     LogConfigBuilderDjango()

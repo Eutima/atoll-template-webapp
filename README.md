@@ -1,5 +1,7 @@
 # Django Template
 
+[![Tests](https://github.com/roymanigley/blueprint-django-template/actions/workflows/tests.yml/badge.svg)](https://github.com/roymanigley/blueprint-django-template/actions/workflows/tests.yml)
+
 A Django project template with a strict domain-driven architecture, [django-cotton](https://django-cotton.com) + [htmx](https://htmx.org) (+ [Alpine.js](https://alpinejs.dev)) for the frontend, [Huey](https://huey.readthedocs.io) for background jobs, and [l4py](https://pypi.org/project/l4py/) for structured logging.
 
 ## Architecture
