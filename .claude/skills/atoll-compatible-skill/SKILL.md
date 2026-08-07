@@ -140,11 +140,25 @@ to validate your changes:
   comment. Add all five keys to `.env.example`.
 - **If a worker was requested in step 2**: make sure the worker/queue config
   resolves `REDIS_HOST` and `REDIS_PORT` (default `REDIS_HOST=redis`,
-  `REDIS_PORT=6379`) and add them to `.env.example`. Do not hardcode a
-  worker start command in the repo expecting Atoll to discover it — the
-  worker's start command is configured on the Atoll side. Call this out in
-  your final summary so the user tells their operator the exact command to
-  run (e.g. `celery -A app worker`, `node worker.js`, `bin/worker`).
+  `REDIS_PORT=6379`) and add them to `.env.example`. Whenever an app has a
+  background worker it must ship a **`run_worker.sh`** script that starts the
+  worker — one place, version-controlled, no start command duplicated across
+  compose files or memorised by an operator. Put it wherever the repo keeps
+  its other docker scripts (e.g. next to an existing `docker/entrypoint.sh`,
+  otherwise the repo root), make it executable (`chmod +x` in the Dockerfile
+  too so it stays executable in the image), and have it exec the stack's
+  worker command, e.g.:
+
+  ```sh
+  #!/bin/sh
+  set -e
+
+  exec python manage.py run_huey   # or: celery -A app worker, node worker.js, bin/worker
+  ```
+
+  Point the worker service's `command:` in `docker-compose.yml` (and any
+  prod compose file) at this script rather than inlining the raw command. The
+  Atoll worker profile is likewise pointed at `run_worker.sh`.
 - **If a custom domain was requested in step 2**: no repo change is needed;
   note in your final summary that the operator will need to set a
   `HOST_PORT` variable on their end and configure the domain in the Atoll
@@ -164,7 +178,8 @@ Report back concisely:
   - Confirm/select the matching deployment profile for this repo.
   - Set real values for every key in `.env.example` in the Atoll console.
   - Map the deployment branch(es) to environment(s).
-  - If a worker is used: tell the operator the worker start command.
+  - If a worker is used: it starts via `run_worker.sh`; tell the operator to
+    point the worker profile at that script.
   - If a custom domain is planned: request a `HOST_PORT` variable and
     domain configuration.
   - If deployment approval gates are desired: ask the operator to enable

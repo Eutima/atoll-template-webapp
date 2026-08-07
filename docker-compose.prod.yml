@@ -21,7 +21,7 @@ services:
     build:
       context: .
       target: runtime
-    command: python manage.py run_huey
+    command: docker/run_worker.sh
     env_file: .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
