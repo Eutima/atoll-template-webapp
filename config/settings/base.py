@@ -82,7 +82,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = "authentication:login"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "authentication:login"
 
 LANGUAGE_CODE = "en-us"
@@ -96,14 +96,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "1025"))
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False") == "True"
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL", "noreply@example.com")
 
 HELIX_BASE_URL = "https://helix.eutima.ch"
 HELIX_OAUTH_CLIENT_ID = os.environ.get("HELIX_OAUTH_CLIENT_ID", "")

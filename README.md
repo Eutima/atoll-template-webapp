@@ -17,7 +17,7 @@ config/                  Django project configuration
 apps/
     shared/               base models, mixins, serializers, filters, views,
                           exceptions, middleware, external interfaces
-        interfaces/       code talking to external systems (e.g. smtp/)
+        interfaces/       code talking to external systems (e.g. helix/)
 
     authentication/       UserProfile domain (custom user model) — the
                           reference implementation of the domain pattern:
@@ -60,21 +60,17 @@ python manage.py run_huey
 ```
 
 Visit:
-- `/` — home page, log in / log out
+- `/` — authenticated home page (the `LOGIN_REDIRECT_URL` target)
 - `/admin/` — Django admin
 - `/auth/login/` — log in with Helix
 
 ## Tests
 
-```bash
-python manage.py test
-```
-
-Runs against `config.settings.test` is implied by `manage.py` picking up
-`DJANGO_SETTINGS_MODULE`; to force it explicitly:
+Test config lives in `pytest.ini`, which pins `DJANGO_SETTINGS_MODULE` to
+`config.settings.test`:
 
 ```bash
-DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test
+pytest
 ```
 
 ## Docker

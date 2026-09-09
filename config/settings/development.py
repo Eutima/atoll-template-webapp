@@ -27,8 +27,6 @@ HUEY = {
     "immediate": False,
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
 # Debug Toolbar is added ONLY in development settings, never conditionally in
 # base.py, so it structurally cannot leak into production even if DEBUG is
 # accidentally flipped to True there.

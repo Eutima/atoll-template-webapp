@@ -13,6 +13,7 @@ from apps.shared.exceptions import PermissionDeniedError, ValidationError
 
 class LoginPageView(TemplateView):
     template_name = "authentication/login.html"
+    redirect_authenticated_user = True
 
 
 class HelixLoginView(View):

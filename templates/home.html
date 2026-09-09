@@ -1,0 +1,19 @@
+<c-layout title="Home">
+  <div class="mx-auto mt-24 max-w-sm rounded-md border border-gray-200 bg-white p-6 shadow-sm">
+    <h1 class="mb-2 text-lg font-semibold text-gray-900">Home</h1>
+    <p class="mb-4 text-sm text-gray-500">Signed in as {{ request.user.email }}</p>
+
+    <ul class="mb-4 space-y-1 text-sm">
+      <li>
+        <a class="text-indigo-600 hover:underline" href="{% url 'admin:index' %}">Django admin</a>
+      </li>
+    </ul>
+
+    <form method="post" action="{% url 'authentication:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+        Log out
+      </button>
+    </form>
+  </div>
+</c-layout>

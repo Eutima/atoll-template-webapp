@@ -44,7 +44,7 @@ asked — this is a "did I forget something" check, not a standalone task.
 3. Diff the two lists.
    - **Missing from `.env.example`**: add a line `KEY=<placeholder>` under
      the appropriate section comment (`# Django`, `# Database`, `# Redis /
-     Huey`, `# l4py logging`, `# Email / SMTP interface`, or a new section
+     Huey`, `# l4py logging`, `# Helix OAuth / OIDC`, or a new section
      if it's a genuinely new integration). Use a safe non-secret
      placeholder value (e.g. `changeme`, a working local default, or
      empty string), never a real credential.
@@ -52,7 +52,7 @@ asked — this is a "did I forget something" check, not a standalone task.
      code**: remove the line — stale entries are misleading.
 
 4. If a variable is only relevant to one settings module (e.g.
-   `POSTGRES_*`/`REDIS_*` are only read by `config/settings/production.py`),
+   `DB_*`/`REDIS_*` are only read by `config/settings/production.py`),
    keep the existing convention of a comment noting that, e.g.
    `# (used only when DJANGO_SETTINGS_MODULE=config.settings.production)`
    — see the existing `.env.example` for the pattern.
