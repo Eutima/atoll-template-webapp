@@ -102,6 +102,9 @@ AUTH_PROVIDER = os.environ.get("AUTH_PROVIDER", "django")
 
 MFA_ENABLED = os.environ.get("MFA_ENABLED", "False").lower() == "true"
 
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 HELIX_BASE_URL = "https://helix.eutima.ch"
 HELIX_OAUTH_CLIENT_ID = os.environ.get("HELIX_OAUTH_CLIENT_ID", "")
 HELIX_OAUTH_CLIENT_SECRET = os.environ.get("HELIX_OAUTH_CLIENT_SECRET", "")

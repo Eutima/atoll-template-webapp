@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.conf import settings
 from django.db.models import QuerySet
 from l4py import get_logger
 
@@ -49,6 +50,17 @@ class UserProfileService:
     def delete(self, profile_id: int) -> None:
         profile = self.by_id(profile_id)
         profile.delete()
+
+    def create_initial_superuser(self) -> UserProfile | None:
+        if UserProfile.objects.exists():
+            return None
+        email = settings.ADMIN_EMAIL
+        password = settings.ADMIN_PASSWORD
+        if not email or not password:
+            return None
+        profile = UserProfile.objects.create_superuser(email=email, password=password)
+        logger.info("Created initial superuser id=%s email=%s", profile.id, profile.email)
+        return profile
 
     def activate(self, profile_id: int) -> UserProfile:
         return self.update(profile_id, is_active=True)

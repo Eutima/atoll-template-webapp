@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from apps.authentication.models.user_profile import UserProfile
 from apps.authentication.services.user_profile import UserProfileService
@@ -57,3 +57,25 @@ class UserProfileServiceTests(TestCase):
         results = self.service.search("Ada")
         self.assertIn(active, results)
         self.assertNotIn(inactive, results)
+
+    @override_settings(ADMIN_EMAIL="admin@example.com", ADMIN_PASSWORD="password123")
+    def test_create_initial_superuser_creates_when_no_users_exist(self) -> None:
+        profile = self.service.create_initial_superuser()
+        assert profile is not None
+        self.assertEqual(profile.email, "admin@example.com")
+        self.assertTrue(profile.check_password("password123"))
+        self.assertTrue(profile.is_staff)
+        self.assertTrue(profile.is_superuser)
+
+    @override_settings(ADMIN_EMAIL="admin@example.com", ADMIN_PASSWORD="password123")
+    def test_create_initial_superuser_skips_when_users_already_exist(self) -> None:
+        self.service.create(email="ada@example.com", password="password123")
+        profile = self.service.create_initial_superuser()
+        self.assertIsNone(profile)
+        self.assertFalse(UserProfile.objects.filter(email="admin@example.com").exists())
+
+    @override_settings(ADMIN_EMAIL="", ADMIN_PASSWORD="")
+    def test_create_initial_superuser_skips_when_credentials_blank(self) -> None:
+        profile = self.service.create_initial_superuser()
+        self.assertIsNone(profile)
+        self.assertFalse(UserProfile.objects.exists())
