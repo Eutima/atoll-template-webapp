@@ -1,0 +1,38 @@
+<c-layout title="Set up MFA">
+  <div class="mx-auto mt-24 max-w-sm rounded-md border border-gray-200 bg-white p-6 shadow-sm text-center">
+    <h1 class="mb-4 text-lg font-semibold text-gray-900">Set up MFA</h1>
+
+    {% if errors %}
+      {% for field_errors in errors.values %}
+        {% for error in field_errors %}
+          <p class="mb-3 text-sm text-red-600">{{ error }}</p>
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+
+    <p class="mb-3 text-sm text-gray-600">Scan this code with your authenticator app.</p>
+    <div class="mx-auto mb-3 w-48">{{ qr_svg|safe }}</div>
+    <p class="mb-4 break-all text-xs text-gray-500">Or enter this key manually: {{ secret }}</p>
+
+    <form method="post" class="space-y-3 text-left">
+      {% csrf_token %}
+      <div>
+        <label for="id_code" class="block text-sm font-medium text-gray-700">Code from your app</label>
+        <input
+          type="text"
+          name="code"
+          id="id_code"
+          inputmode="numeric"
+          required
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+      >
+        Confirm
+      </button>
+    </form>
+  </div>
+</c-layout>

@@ -37,7 +37,7 @@ INTERNAL_IPS = ["127.0.0.1"]
 LOGGING = (
     LogConfigBuilderDjango()
     .django_log_level(logging.INFO)
-    .show_sql(True)
+    .show_sql(False)
     .file_enabled(False)  # containers log to stdout; no log files on disk
     .add_logger("apps", logging.DEBUG)
     .build_config()

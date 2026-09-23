@@ -25,6 +25,9 @@ DATABASES = {
     }
 }
 
+# Defaults on in production, overriding base.py's off-by-default value for local dev.
+MFA_ENABLED = os.environ.get("MFA_ENABLED", "True") == "True"
+
 HUEY = {
     "huey_class": "huey.RedisHuey",
     "name": "django_template_prod",

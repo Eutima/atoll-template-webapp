@@ -45,6 +45,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.authentication.middleware.MFAEnforcementMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
@@ -96,6 +97,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_PROVIDER = os.environ.get("AUTH_PROVIDER", "django")
+
+MFA_ENABLED = os.environ.get("MFA_ENABLED", "False").lower() == "true"
 
 HELIX_BASE_URL = "https://helix.eutima.ch"
 HELIX_OAUTH_CLIENT_ID = os.environ.get("HELIX_OAUTH_CLIENT_ID", "")

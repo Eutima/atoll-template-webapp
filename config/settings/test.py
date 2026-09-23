@@ -4,6 +4,9 @@ DEBUG = False
 
 ALLOWED_HOSTS = ["testserver"]
 
+# Hardcoded, not env-derived: tests must not depend on a developer's local .env.
+MFA_ENABLED = False
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
