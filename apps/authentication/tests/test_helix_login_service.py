@@ -2,10 +2,9 @@ from unittest.mock import patch
 
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpRequest
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from apps.authentication.models.user_profile import UserProfile
-from apps.authentication.services.helix_login import SESSION_KEY, HelixLoginService
+from apps.authentication.services.helix_login import PENDING_SESSION_KEY, USER_SESSION_KEY, HelixLoginService
 from apps.shared.exceptions import PermissionDeniedError, ValidationError
 from apps.shared.interfaces.helix.client import HelixInterface
 
@@ -26,7 +25,7 @@ def _with_session(request: HttpRequest) -> HttpRequest:
 
 
 @override_settings(**HELIX_SETTINGS)
-class HelixLoginServiceTests(TestCase):
+class HelixLoginServiceTests(SimpleTestCase):
     def setUp(self) -> None:
         self.factory = RequestFactory()
         self.service = HelixLoginService()
@@ -37,19 +36,26 @@ class HelixLoginServiceTests(TestCase):
         callback_request.session = session
         return callback_request
 
+    def test_is_configured_true_when_client_id_set(self) -> None:
+        self.assertTrue(self.service.is_configured())
+
+    @override_settings(HELIX_OAUTH_CLIENT_ID="")
+    def test_is_configured_false_when_client_id_blank(self) -> None:
+        self.assertFalse(self.service.is_configured())
+
     def test_build_authorize_redirect_stores_pkce_state_in_session(self) -> None:
         request = _with_session(self.factory.get("/auth/helix/login/"))
         response = self.service.build_authorize_redirect(request)
         self.assertEqual(response.status_code, 302)
-        pending = request.session[SESSION_KEY]
+        pending = request.session[PENDING_SESSION_KEY]
         self.assertIn("state", pending)
         self.assertIn("code_verifier", pending)
         self.assertIn(pending["state"], response.url)
 
-    def test_complete_login_creates_new_profile(self) -> None:
+    def test_complete_login_stores_session_claims_when_tenant_member(self) -> None:
         start_request = _with_session(self.factory.get("/auth/helix/login/"))
         self.service.build_authorize_redirect(start_request)
-        state = start_request.session[SESSION_KEY]["state"]
+        state = start_request.session[PENDING_SESSION_KEY]["state"]
         request = self._authorized_request(start_request.session, code="auth-code", state=state)
 
         with (
@@ -61,30 +67,12 @@ class HelixLoginServiceTests(TestCase):
             ),
             patch.object(HelixInterface, "tenant_slugs", return_value=["acme-corp"]),
         ):
-            profile = self.service.complete_login(request)
+            claims = self.service.complete_login(request)
 
-        self.assertEqual(profile.email, "ada@example.com")
-        self.assertEqual(profile.helix_sub, "helix-sub-1")
-        self.assertFalse(profile.has_usable_password())
-
-    def test_complete_login_links_existing_profile_by_email(self) -> None:
-        existing = UserProfile.objects.create_user(email="ada@example.com", password="password123")
-        start_request = _with_session(self.factory.get("/auth/helix/login/"))
-        self.service.build_authorize_redirect(start_request)
-        state = start_request.session[SESSION_KEY]["state"]
-        request = self._authorized_request(start_request.session, code="auth-code", state=state)
-
-        with (
-            patch.object(HelixInterface, "exchange_code", return_value={"access_token": "access-token"}),
-            patch.object(
-                HelixInterface, "userinfo", return_value={"sub": "helix-sub-1", "email": "ada@example.com"}
-            ),
-            patch.object(HelixInterface, "tenant_slugs", return_value=["acme-corp"]),
-        ):
-            profile = self.service.complete_login(request)
-
-        self.assertEqual(profile.pk, existing.pk)
-        self.assertEqual(UserProfile.objects.count(), 1)
+        self.assertEqual(claims["email"], "ada@example.com")
+        self.assertEqual(claims["sub"], "helix-sub-1")
+        self.assertEqual(request.session[USER_SESSION_KEY], claims)
+        self.assertNotIn(PENDING_SESSION_KEY, request.session)
 
     def test_complete_login_missing_state_raises_validation_error(self) -> None:
         request = _with_session(self.factory.get("/auth/helix/callback/", {"code": "auth-code", "state": "bogus"}))
@@ -94,7 +82,7 @@ class HelixLoginServiceTests(TestCase):
     def test_complete_login_rejects_non_tenant_member(self) -> None:
         start_request = _with_session(self.factory.get("/auth/helix/login/"))
         self.service.build_authorize_redirect(start_request)
-        state = start_request.session[SESSION_KEY]["state"]
+        state = start_request.session[PENDING_SESSION_KEY]["state"]
         request = self._authorized_request(start_request.session, code="auth-code", state=state)
 
         with (
@@ -107,4 +95,4 @@ class HelixLoginServiceTests(TestCase):
             with self.assertRaises(PermissionDeniedError):
                 self.service.complete_login(request)
 
-        self.assertFalse(UserProfile.objects.filter(email="ada@example.com").exists())
+        self.assertNotIn(USER_SESSION_KEY, request.session)

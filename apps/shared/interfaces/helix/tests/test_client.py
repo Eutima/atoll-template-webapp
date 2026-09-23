@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 import requests
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, override_settings
 
 from apps.shared.interfaces.helix.client import HelixInterface
 from apps.shared.interfaces.helix.exceptions import HelixAuthError
@@ -16,7 +16,7 @@ HELIX_SETTINGS = {
 
 
 @override_settings(**HELIX_SETTINGS)
-class HelixInterfaceTests(TestCase):
+class HelixInterfaceTests(SimpleTestCase):
     def test_authorize_url_includes_pkce_and_tenant(self) -> None:
         url = HelixInterface().authorize_url(state="state-123", code_challenge="challenge-abc")
         self.assertTrue(url.startswith("https://helix.example.com/auth/oauth/authorize/?"))

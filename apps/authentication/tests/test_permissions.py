@@ -1,57 +1,69 @@
-from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.http import HttpRequest, HttpResponse
+from django.test import RequestFactory, SimpleTestCase
 from django.views import View
 
-from apps.authentication.models.user_profile import UserProfile
-from apps.authentication.permissions.user_profile import StaffRequiredMixin, is_self_or_staff
+from apps.authentication.permissions.helix import (
+    HelixLoginRequiredMixin,
+    get_helix_user,
+    helix_login_required,
+    is_helix_authenticated,
+)
+from apps.authentication.services.helix_login import USER_SESSION_KEY
 
 
-class _StaffOnlyView(StaffRequiredMixin, View):
+def _request_with_session(session: dict | None = None) -> HttpRequest:
+    request = RequestFactory().get("/")
+    request.session = {} if session is None else session
+    return request
+
+
+class _GatedView(HelixLoginRequiredMixin, View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         return HttpResponse("ok")
 
 
-class IsSelfOrStaffTests(TestCase):
-    def test_true_when_same_user(self) -> None:
-        user = UserProfile.objects.create_user(email="ada@example.com", password="password123")
-        self.assertTrue(is_self_or_staff(user, user))
-
-    def test_true_when_staff(self) -> None:
-        staff = UserProfile.objects.create_user(email="staff@example.com", password="password123", is_staff=True)
-        other = UserProfile.objects.create_user(email="other@example.com", password="password123")
-        self.assertTrue(is_self_or_staff(staff, other))
-
-    def test_false_for_unrelated_non_staff_user(self) -> None:
-        user = UserProfile.objects.create_user(email="ada@example.com", password="password123")
-        other = UserProfile.objects.create_user(email="other@example.com", password="password123")
-        self.assertFalse(is_self_or_staff(user, other))
+@helix_login_required
+def _gated_function_view(request) -> HttpResponse:
+    return HttpResponse("ok")
 
 
-class StaffRequiredMixinTests(TestCase):
-    def setUp(self) -> None:
-        self.factory = RequestFactory()
+class GetHelixUserTests(SimpleTestCase):
+    def test_returns_none_when_not_signed_in(self) -> None:
+        request = _request_with_session()
+        self.assertIsNone(get_helix_user(request))
 
-    def test_raises_permission_denied_for_non_staff(self) -> None:
-        request = self.factory.get("/")
-        request.user = UserProfile.objects.create_user(email="ada@example.com", password="password123")
-        with self.assertRaises(PermissionDenied):
-            _StaffOnlyView().dispatch(request)
+    def test_returns_claims_when_signed_in(self) -> None:
+        claims = {"sub": "helix-sub-1", "email": "ada@example.com"}
+        request = _request_with_session({USER_SESSION_KEY: claims})
+        self.assertEqual(get_helix_user(request), claims)
 
-    def test_allows_staff_user(self) -> None:
-        request = self.factory.get("/")
-        request.user = UserProfile.objects.create_user(
-            email="staff@example.com", password="password123", is_staff=True
-        )
-        response = _StaffOnlyView().dispatch(request)
+
+class IsHelixAuthenticatedTests(SimpleTestCase):
+    def test_false_when_no_session_claims(self) -> None:
+        self.assertFalse(is_helix_authenticated(_request_with_session()))
+
+    def test_true_when_session_has_claims(self) -> None:
+        request = _request_with_session({USER_SESSION_KEY: {"sub": "helix-sub-1"}})
+        self.assertTrue(is_helix_authenticated(request))
+
+
+class HelixLoginRequiredDecoratorTests(SimpleTestCase):
+    def test_redirects_when_not_signed_in(self) -> None:
+        response = _gated_function_view(_request_with_session())
+        self.assertEqual(response.status_code, 302)
+
+    def test_passes_through_when_signed_in(self) -> None:
+        request = _request_with_session({USER_SESSION_KEY: {"sub": "helix-sub-1"}})
+        response = _gated_function_view(request)
         self.assertEqual(response.status_code, 200)
 
 
-class StaffRequiredMixinAnonymousTests(SimpleTestCase):
-    def test_raises_permission_denied_for_anonymous(self) -> None:
-        from django.contrib.auth.models import AnonymousUser
+class HelixLoginRequiredMixinTests(SimpleTestCase):
+    def test_redirects_when_not_signed_in(self) -> None:
+        response = _GatedView().dispatch(_request_with_session())
+        self.assertEqual(response.status_code, 302)
 
-        request = RequestFactory().get("/")
-        request.user = AnonymousUser()
-        with self.assertRaises(PermissionDenied):
-            _StaffOnlyView().dispatch(request)
+    def test_passes_through_when_signed_in(self) -> None:
+        request = _request_with_session({USER_SESSION_KEY: {"sub": "helix-sub-1"}})
+        response = _GatedView().dispatch(request)
+        self.assertEqual(response.status_code, 200)

@@ -14,30 +14,8 @@ ALLOWED_HOSTS = [host.strip()
 CSRF_TRUSTED_ORIGINS = [host.strip()
                         for host in os.environ["CSRF_TRUSTED_ORIGINS"].split(",") if host.strip()]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["DB_NAME"],
-        "USER": os.environ["DB_USER"],
-        "PASSWORD": os.environ["DB_PASSWORD"],
-        "HOST": os.environ["DB_HOST"],
-        "PORT": os.environ.get("DB_PORT", "5432"),
-    }
-}
-
-# Defaults on in production, overriding base.py's off-by-default value for local dev.
-MFA_ENABLED = os.environ.get("MFA_ENABLED", "True") == "True"
-
-HUEY = {
-    "huey_class": "huey.RedisHuey",
-    "name": "django_template_prod",
-    "connection": {
-        "host": os.environ.get("REDIS_HOST", "redis"),
-        "port": int(os.environ.get("REDIS_PORT", "6379")),
-        "db": int(os.environ.get("REDIS_DB", "0")),
-    },
-    "immediate": False,
-}
+# No database in this app -- see CLAUDE.md.
+DATABASES = {}
 
 # WhiteNoise serves compiled static assets directly from the app process in
 # production, right after SecurityMiddleware per WhiteNoise's own setup docs.

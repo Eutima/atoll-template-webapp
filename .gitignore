@@ -8,8 +8,6 @@ __pycache__/
 venv/
 
 # Django
-db.sqlite3
-huey.sqlite3
 /staticfiles/
 *.log
 

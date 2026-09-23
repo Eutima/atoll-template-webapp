@@ -15,7 +15,7 @@ RUN npm run build:css
 FROM python:3.12-slim AS py-builder
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev \
+    && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements/ requirements/
 RUN pip install --user --no-cache-dir -r requirements/production.txt
@@ -27,13 +27,12 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings.development
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev \
+    && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements/ requirements/
 RUN pip install --no-cache-dir -r requirements/development.txt
 COPY . .
-COPY docker/run_worker.sh run_worker.sh
-RUN chmod +x docker/entrypoint.sh docker/run_worker.sh run_worker.sh
+RUN chmod +x docker/entrypoint.sh
 EXPOSE 8000
 ENTRYPOINT ["docker/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
@@ -45,15 +44,14 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings.production \
     PATH="/home/appuser/.local/bin:${PATH}"
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq5 gettext \
+    && apt-get install -y --no-install-recommends gettext \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 appuser
 WORKDIR /app
 COPY --from=py-builder /root/.local /home/appuser/.local
 COPY --from=css-builder /build/static/css/dist ./static/css/dist
 COPY . .
-COPY docker/run_worker.sh run_worker.sh
-RUN chmod +x docker/entrypoint.sh docker/run_worker.sh run_worker.sh \
+RUN chmod +x docker/entrypoint.sh \
     && chown -R appuser:appuser /app
 USER appuser
 
@@ -64,12 +62,10 @@ USER appuser
 RUN DJANGO_SECRET_KEY=build-time-placeholder \
     ALLOWED_HOSTS=localhost \
     CSRF_TRUSTED_ORIGINS=http://localhost \
-    DB_NAME=build DB_USER=build DB_PASSWORD=build DB_HOST=localhost \
     python manage.py collectstatic --noinput \
     && DJANGO_SECRET_KEY=build-time-placeholder \
     ALLOWED_HOSTS=localhost \
     CSRF_TRUSTED_ORIGINS=http://localhost \
-    DB_NAME=build DB_USER=build DB_PASSWORD=build DB_HOST=localhost \
     python manage.py compilemessages
 
 EXPOSE 8000

@@ -3,7 +3,7 @@ import logging
 from l4py import LogConfigBuilderDjango
 
 from .base import *  # noqa: F401,F403
-from .base import BASE_DIR, INSTALLED_APPS, MIDDLEWARE
+from .base import INSTALLED_APPS, MIDDLEWARE
 
 DEBUG = True
 
@@ -13,19 +13,8 @@ ALLOWED_HOSTS = [host.strip()
 CSRF_TRUSTED_ORIGINS = [host.strip()
                         for host in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",") if host.strip()]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
-HUEY = {
-    "huey_class": "huey.SqliteHuey",
-    "name": "django_template_dev",
-    "filename": str(BASE_DIR / "huey.sqlite3"),
-    "immediate": False,
-}
+# No database in this app -- see CLAUDE.md.
+DATABASES = {}
 
 # Debug Toolbar is added ONLY in development settings, never conditionally in
 # base.py, so it structurally cannot leak into production even if DEBUG is

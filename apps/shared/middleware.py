@@ -16,6 +16,8 @@ class LoggingContextMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         trace_id = request.headers.get("X-Trace-Id") or uuid.uuid4().hex
         set_trace_id(trace_id)
-        user = getattr(request, "user", None)
-        set_user_id(str(user.pk) if user is not None and user.is_authenticated else None)
+        # Literal session key, not imported from apps.authentication: apps/shared
+        # must never import from a domain app.
+        helix_user = request.session.get("helix_user")
+        set_user_id(helix_user.get("sub") if helix_user else None)
         return self.get_response(request)

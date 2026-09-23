@@ -1,24 +1,30 @@
 from types import SimpleNamespace
 
-from django.contrib.auth import get_user_model
-from django.test import Client, SimpleTestCase, TestCase
+from django.conf import settings
+from django.test import Client, SimpleTestCase
 from django.urls import reverse
 
 from apps.shared.views import HtmxTemplateMixin, PaginatedListViewMixin
 
 
-class HomeViewTests(TestCase):
-    def test_anonymous_is_redirected_to_login(self) -> None:
-        response = self.client.get(reverse("home"))
-        self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("authentication:login"), response["Location"])
-
-    def test_authenticated_user_sees_home(self) -> None:
-        user = get_user_model().objects.create_user(email="home@example.com", password="password123")
-        self.client.force_login(user)
+class HomeViewTests(SimpleTestCase):
+    def test_anonymous_sees_home_without_being_redirected(self) -> None:
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "home.html")
+
+    def test_signed_in_user_sees_home(self) -> None:
+        session = self.client.session
+        session["helix_user"] = {"sub": "helix-sub-1", "email": "home@example.com"}
+        session.save()
+        # The signed_cookies session backend bakes the cookie value at
+        # session.save() time, not when self.client.session was first read.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Signed in as home@example.com")
 
 
 class MetricsViewTests(SimpleTestCase):
