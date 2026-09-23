@@ -14,10 +14,22 @@ implement**. Its entire compatibility contract boils down to four things:
    `--target` flag. Whatever the **last stage** of the Dockerfile is, that's
    what gets built and run.
 2. A root `.env.example` (or `example.env`) file listing every environment
-   variable the app needs, one `KEY=` per line. Atoll only reads the *key
-   names* from this file — it uses them to know which variables an operator
-   must supply a value for in its console. If a key is expected but has no
-   value set, **the deployment is blocked** before the image is even built.
+   variable the app needs, one **uncommented** `KEY=value` per line. Atoll reads
+   the key names (so it knows which variables an operator must supply) and also
+   reads whatever you put after the `=` as that key's **default**: it pre-fills
+   the operator's console with it, and for non-secret keys creates the variable
+   automatically. Rules that follow from this:
+   - **Never comment a variable out.** A line starting with `#` is ignored
+     entirely, so the key is neither shown in the console nor created — and if
+     the code reads it, **the deployment is blocked** as a missing variable.
+   - **No inline `# ...` comments after a value.** Atoll does not strip them, so
+     `KEY=value # note` makes the default the literal `value # note`. Put any
+     explanation on its own `#` line *above* the key instead.
+   - Give safe, non-secret keys a real default (e.g. `DB_HOST=db`); leave
+     secrets blank (`SECRET_KEY=`) so an operator sets them by hand.
+
+   If a key is expected but left without a value, **the deployment is blocked**
+   before the image is even built.
 3. Exactly one HTTP health-check endpoint that returns HTTP `200`. The port
    and path are **fixed by which deployment profile an Atoll operator picks
    for this app** — the repo cannot declare a custom port or path itself.
@@ -25,9 +37,8 @@ implement**. Its entire compatibility contract boils down to four things:
 
    | Profile          | Container port | Health-check path |
    |------------------|-----------------|--------------------|
-   | Django-style      | `8000`          | `/metrics`         |
-   | Static/Angular-style | `80`         | `/`                |
-   | Generic           | `8000`          | `/`                |
+   | Generic           | `8000`          | `/metrics`                |
+   | Static hosting    | `8000`          | `/`                       |
 
 4. If the app needs a database or a background worker, it should read their
    connection info from a fixed set of env var names (below) — Atoll
@@ -63,11 +74,10 @@ Before writing the Dockerfile and health check, ask the user (they'll need to
 confirm this with whoever administers their Atoll instance, since it's an
 operator-side setting):
 
-- Which profile will this app be deployed under: **Django-style** (port
-  8000, health path `/metrics`), **static/Angular-style** (port 80, health
-  path `/`), or **generic** (port 8000, health path `/`)? If none of the
-  presets match the framework, pick the generic profile's port/path
-  (`8000` / `/`) as the safe default and note that the operator may need to
+- Pick the generic profile's port/path (`8000` / `/metrics`) as the safe
+  default for an app with server-side logic; pick the static hosting profile
+  (`8000` / `/`) instead if this repo only serves static files (no backend
+  process, no `/metrics` route to add). Note that the operator may need to
   add a custom profile on their end if a different port is required.
 - Does this app need a database? (assume PostgreSQL if yes — that's the only
   database Atoll provisions today)
@@ -91,14 +101,25 @@ Don't guess these — they change what you build in steps 3–6.
   — whatever is idiomatic for this stack.
 - Make sure the app listens on `0.0.0.0` on the chosen container port, not
   `127.0.0.1`/`localhost`.
+- For the static hosting profile: serve the built assets with a static web
+  server (nginx, `caddy`, `busybox httpd`, etc.) configured to **listen
+  internally on `8000`**, not its default port (e.g. nginx's default `80`) —
+  the profile's fixed container port is `8000` regardless of what the server
+  normally defaults to.
 
 ### 4. Health-check endpoint
 
 Add (or verify) a route at the path chosen in step 2 that returns a plain
 HTTP `200` with no required auth. Wire it into the app's actual router in a
 way idiomatic to the framework (e.g. a Django URL pattern, an Express route,
-a Rails route, a Spring `@GetMapping`). A trivial static `200 OK` body is
-sufficient — Atoll only checks the status code.
+a Rails route, a Spring `@GetMapping`). A trivial static `up 1` body is
+sufficient — Atoll only checks the status code. But make it prometeus compatible.
+
+For the static hosting profile, no custom route is needed: `/` already
+returns `200` as long as an `index.html` exists at the site root, which the
+health check just re-checks on every deploy. Only add anything here if the
+build produces no file at `/` (e.g. a SPA whose router 404s on unknown paths
+but happens to also break the root) — otherwise this step is a no-op.
 
 ### 5. `.env.example`
 
@@ -106,10 +127,14 @@ Scan the codebase for every place it reads configuration from the
 environment (`os.environ`/`os.getenv` in Python, `process.env` in
 Node/JS/TS, `System.getenv`/Spring `@Value` in Java, `ENV[...]` in Ruby,
 `os.Getenv` in Go, etc.). Create or update a root `.env.example` (or
-`example.env` if the repo already uses that name) listing every discovered
-key as `KEY=` (no real values — placeholders or blank). Preserve any
-existing entries already in the file; add missing ones; don't remove
-entries you can't confirm are unused.
+`example.env` if the repo already uses that name) so **every discovered key is
+a live, uncommented line** — `KEY=<safe default>` for non-secret config that
+has an obvious default, `KEY=` (blank) for secrets and anything with no safe
+default. Follow the `.env.example` rules in the compatibility contract above:
+no commented-out keys, no inline `# ...` comments. If the existing file has any
+of these keys commented out (`# KEY=...`), uncomment them so Atoll registers
+them. Preserve existing entries; add missing ones; don't remove entries you
+can't confirm are unused.
 
 ### 6. Testing (Python projects only)
 
@@ -136,8 +161,9 @@ to validate your changes:
   `DB_PASSWORD` (default `DB_HOST=db`, `DB_PORT=5432` once deployed). If the
   app currently uses differently-named variables (e.g. `DATABASE_URL`,
   `POSTGRES_HOST`), either add support for these names alongside the
-  existing ones, or clearly document the mapping in `.env.example` with a
-  comment. Add all five keys to `.env.example`.
+  existing ones, or note the mapping on its own `#` comment line *above* the
+  keys in `.env.example` (never by commenting the keys themselves out). Add all
+  five keys as live, uncommented `KEY=` lines in `.env.example`.
 - **If a worker was requested in step 2**: make sure the worker/queue config
   resolves `REDIS_HOST` and `REDIS_PORT` (default `REDIS_HOST=redis`,
   `REDIS_PORT=6379`) and add them to `.env.example`. Whenever an app has a

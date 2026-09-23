@@ -322,26 +322,3 @@ required check for this pattern.
 - A registered app's `client_id`/`client_secret`/redirect URIs can only be viewed or
   changed by the Helix workspace admin who manages it, via the same `/auth/oauth/apps/`
   admin UI — ask the user to make changes there, you cannot do it via API.
-
-## In this project
-
-This repo already implements the [gate-only pattern](#pattern-gate-only-integration-app-owns-its-own-authorization),
-with one deliberate deviation: it **does** keep a local `UserProfile` row per Helix user
-(linked by the `sub` claim). Files:
-
-- `apps/shared/interfaces/helix/client.py` — `HelixInterface`: the only code that calls the
-  Helix HTTP endpoints (`authorize_url`, `exchange_code`, `userinfo`, `tenant_slugs`).
-- `apps/authentication/services/helix_login.py` — `HelixLoginService`: PKCE pair + `state`
-  in `request.session`, token exchange, `HELIX_WORKSPACE_TENANT` membership gate
-  (`PermissionDeniedError` → 403), then get-or-create `UserProfile`.
-- `apps/authentication/views/user_profile.py` — `HelixLoginView` / `HelixCallbackView`.
-- Config keys live in `config/settings/base.py` (`HELIX_*`) and `.env.example`.
-
-**Default auth after login is Django's session framework**, not Helix tokens. The callback
-view calls `django.contrib.auth.login(request, profile)`; from then on the request is
-authenticated by the standard session cookie (`SessionMiddleware` + `AuthenticationMiddleware`),
-and `request.user` / `login_required` / `LoginRequiredMixin` work as normal. The Helix
-`access_token`/`refresh_token` are used only transiently inside `complete_login()` and are
-**not** persisted or re-used — there is no token store, no refresh loop, and no Helix REST
-calls after login. Keep it that way unless a feature genuinely needs to call the Helix API
-on the user's behalf.
